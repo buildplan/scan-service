@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const rateLimit = require('express-rate-limit'); // [NEW]
-const validator = require('validator'); // [NEW]
+const rateLimit = require('express-rate-limit');
+const validator = require('validator');
 const { scanQueue } = require('./queues/scanQueue');
 const logger = require('./utils/logger');
 
