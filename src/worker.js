@@ -17,8 +17,8 @@ const worker = new Worker('scan-queue', async (job) => {
     return result;
 }, {
     connection,
-    concurrency: 2, // [TUNING] Max 2 simultaneous Lighthouse scans (adjust based on VPS RAM)
-    lockDuration: 60000 // Increase lock time for slow scans
+    concurrency: 1, // [TUNING] Max 1 simultaneous Lighthouse scans (adjust based on VPS RAM)
+    lockDuration: 120000 // Increase lock time for slow scans
 });
 
 worker.on('failed', (job, err) => {

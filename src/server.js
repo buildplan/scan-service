@@ -24,7 +24,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 const limiter = rateLimit({
     windowMs: 1 * 60 * 1000,
     max: 5,
-    message: { error: 'Too many scan requests, please try again later.' }
+    message: { 
+        error: 'Too many requests.',
+        message: 'To protect our free infrastructure, we limit request frequency.'
+    }
 });
 app.use('/api/scan', limiter);
 
@@ -64,6 +67,17 @@ app.post('/api/scan', async (req, res) => {
     }
 
     try {
+        const counts = await scanQueue.getJobCounts('active', 'waiting');
+
+        // If there is ANY active job or ANY waiting job, reject the new request
+        if (counts.active > 0 || counts.waiting > 0) {
+            return res.status(503).json({
+                error: 'Service is currently busy.',
+                message: 'A scan is currently in progress. Please wait for your turn.',
+                retryAfter: 10 // Hint to the client to try again in 10s
+            });
+        }
+
         logger.info(`Starting scan for: ${domain}`);
 
         // 1. Tier 1: Run Checks
