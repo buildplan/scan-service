@@ -1,0 +1,63 @@
+:root {
+    --primary: #3b82f6;
+    --card-bg: #1e293b;
+    --border: #334155;
+}
+
+body { padding-top: 2rem; }
+
+.scan-header { text-align: center; margin-bottom: 4rem; }
+.search-box { display: flex; gap: 10px; max-width: 600px; margin: 2rem auto; }
+
+.grid-dashboard { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+    gap: 1.5rem; 
+}
+
+.card { 
+    background: var(--card-bg); 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    padding: 0;
+    margin-bottom: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.card header {
+    background: rgba(255,255,255,0.05);
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+.stat-content { padding: 1.5rem; font-size: 1.1rem; }
+.center-content { text-align: center; }
+
+/* Score Circles */
+.score-circle { 
+    width: 80px; height: 80px; 
+    border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center; 
+    font-size: 1.8rem; font-weight: bold; 
+    margin: 1rem auto; 
+    background: #0f172a; 
+    border: 5px solid #334155;
+    position: relative;
+}
+.score-good { border-color: #10b981; color: #10b981; }
+.score-average { border-color: #f59e0b; color: #f59e0b; }
+.score-poor { border-color: #ef4444; color: #ef4444; }
+
+.stack-list { padding: 1rem 1.5rem; margin: 0; font-size: 0.9rem; }
+.stack-list li { list-style: none; margin-bottom: 0.5rem; color: #cbd5e1; }
+.stack-list li::before { content: "🔹 "; }
+
+.badge-pending { font-size: 0.6em; background: #eab308; color: black; padding: 2px 8px; border-radius: 4px; vertical-align: middle; }
+.badge-done { font-size: 0.6em; background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; vertical-align: middle; }
+
+.screenshot-img { width: 100%; border-radius: 8px; border: 1px solid var(--border); margin-top: 1rem; }
+.hidden { display: none !important; }
+.error-card { background: #450a0a; color: #fca5a5; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #7f1d1d; text-align: center; }

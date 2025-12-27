@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Version Control
+.git
+.gitignore
+
+# Docker Configs
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment Secrets
+.env
+.env.local
+.env.*
+
+# Editor/IDE Junk
+.vscode
+.idea
+*.swp
+*.swo
+*.bak
+
+# OS Junk
+.DS_Store
+Thumbs.db
+
+# Persistent Data
+valkey_data
+redis_data
+dump.rdb
+
+# Documentation & Tests
+README.md
+tests
+coverage
+docs
