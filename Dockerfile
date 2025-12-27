@@ -22,7 +22,10 @@ FROM node:24-trixie-slim AS worker
 
 WORKDIR /app
 
-# 1. Install utilities to download Chrome
+# Declare architecture variables (automatically set by buildx)
+ARG TARGETARCH
+
+# 1. Install utilities
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -31,11 +34,18 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Download and Install Google Chrome Stable directly
-RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt-get update \
-    && apt-get install -y ./google-chrome-stable_current_amd64.deb \
-    && rm google-chrome-stable_current_amd64.deb \
+# 2. Download Chrome based on architecture
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+        && apt-get update \
+        && apt-get install -y ./google-chrome-stable_current_amd64.deb \
+        && rm google-chrome-stable_current_amd64.deb; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_arm64.deb \
+        && apt-get update \
+        && apt-get install -y ./google-chrome-stable_current_arm64.deb \
+        && rm google-chrome-stable_current_arm64.deb; \
+    fi \
     && rm -rf /var/lib/apt/lists/*
 
 # 3. Configure Puppeteer
