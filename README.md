@@ -31,9 +31,11 @@ Visit the portal at [audit.wiredalter.com](https://audit.wiredalter.com). Enter 
 
 ### API Access
 
-Developers can programmatically trigger scans and retrieve JSON results. Note that deep scans are asynchronous due to their complexity.
+Developers can programmatically trigger scans and retrieve JSON results.
 
-**1. Initiate Scan:**
+#### 1. Quick Audit (Tier 1)
+
+Run this to get immediate data (SSL, Headers, DNS, Ports). This **does not** start a deep scan or generate a Job ID.
 
 ```bash
 curl -X POST https://audit.wiredalter.com/api/scan \
@@ -41,15 +43,61 @@ curl -X POST https://audit.wiredalter.com/api/scan \
      -d '{"domain": "example.com"}'
 ```
 
-*Returns a Job ID (`id`) and immediate Tier 1 results.*
+**Response:**
 
-**2. Poll for Results:**
-
-```bash
-curl https://audit.wiredalter.com/api/scan/{job_id}
+```json
+{
+  "tier1": { "ssl": {...}, "headers": {...} }
+}
 ```
 
-*Returns the final Lighthouse metrics and Wappalyzer stack data once the worker completes.*
+#### 2. Trigger Deep Scan (Tier 2)
+
+If you want performance metrics and tech stack data, you must explicitly request a deep scan.
+
+```bash
+curl -X POST https://audit.wiredalter.com/api/scan/deep \
+     -H "Content-Type: application/json" \
+     -d '{"domain": "example.com"}'
+```
+
+**Response:**
+
+```json
+{
+  "id": "58",
+  "status": "queued"
+}
+```
+
+*Note: You may receive a `503 Service Unavailable` error if the community server is busy.*
+
+#### 3. Poll for Results
+
+Use the ID returned from Step 2 to check the status.
+
+```bash
+curl https://audit.wiredalter.com/api/scan/58
+```
+
+**Response (Pending):**
+
+```json
+{ "state": "active", "result": null }
+```
+
+**Response (Completed):**
+
+```json
+{
+  "state": "completed",
+  "result": {
+    "performance": 95,
+    "seo": 100,
+    "tech": [...]
+  }
+}
+```
 
 ## Architecture
 

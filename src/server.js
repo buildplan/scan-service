@@ -18,16 +18,18 @@ const app = express();
 app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
 // [SECURITY] Restrict CORS
-const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : ['https://audit.wiredalter.com'];
-
+const rawOrigins = process.env.CORS_ORIGIN || '';
+const allowedOrigins = rawOrigins.split(',').map(o => o.trim()).filter(o => o);
+const allowAll = allowedOrigins.includes('*');
+logger.info(`[SECURITY] CORS Policy: ${allowAll ? 'Allow All (*)' : 'Strict Whitelist'}`);
+if (!allowAll) logger.info(`[SECURITY] Whitelisted Origins: ${JSON.stringify(allowedOrigins)}`);
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
+        if (allowAll || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+            logger.warn(`[CORS BLOCKED] Origin: '${origin}' is not in the whitelist.`);
             callback(new Error('Not allowed by CORS'));
         }
     }
@@ -68,35 +70,18 @@ const withTimeout = (promise, ms, name) => {
         });
 };
 
+// [ENDPOINT 1] Light Scan - Always available (Tier 1)
 app.post('/api/scan', async (req, res) => {
     let { domain } = req.body;
 
-    // [SECURITY] Strict Input Validation
     if (!domain || typeof domain !== 'string') return res.status(400).json({ error: 'Domain required' });
-
-    // Clean input
     domain = domain.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
-
-    // Validate valid domain format (prevents command injection risks)
-    if (!validator.isFQDN(domain)) {
-        return res.status(400).json({ error: 'Invalid domain format' });
-    }
+    if (!validator.isFQDN(domain)) return res.status(400).json({ error: 'Invalid domain format' });
 
     try {
-        const counts = await scanQueue.getJobCounts('active', 'waiting');
+        logger.info(`Starting Tier 1 scan for: ${domain}`);
 
-        // If there is ANY active job or ANY waiting job, reject the new request
-        if (counts.active > 0 || counts.waiting > 0) {
-            return res.status(503).json({
-                error: 'Service is currently busy.',
-                message: 'A scan is currently in progress. Please wait for your turn.',
-                retryAfter: 10 // Hint to the client to try again in 10s
-            });
-        }
-
-        logger.info(`Starting scan for: ${domain}`);
-
-        // 1. Tier 1: Run Checks
+        // Run Checks (Parallel)
         const results = await Promise.allSettled([
             withTimeout(checkSSL(domain), 5000, 'SSL'),
             withTimeout(checkHeaders(domain), 5000, 'Headers'),
@@ -107,33 +92,57 @@ app.post('/api/scan', async (req, res) => {
 
         const unwrap = (res) => res.status === 'fulfilled' ? res.value : { error: 'Check failed' };
 
-        const tier1 = {
-            ssl: unwrap(results[0]),
-            headers: unwrap(results[1]),
-            ports: unwrap(results[2]),
-            carbon: unwrap(results[3]),
-            dns: unwrap(results[4])
-        };
-
-        // 2. Queue Deep Scan
-        // [PERFORMANCE] Job Options: Clean up Redis automatically
-        const job = await scanQueue.add('deep-scan', { domain }, {
-            removeOnComplete: 100, // Keep last 100 completed jobs
-            removeOnFail: 500,     // Keep last 500 failed jobs for debugging
-            attempts: 1            // Don't retry automatically (expensive)
-        });
-
-        logger.debug(`Job enqueued with ID: ${job.id}`);
-
         res.json({
-            id: job.id,
-            tier1: tier1,
-            status: 'processing_tier_2'
+            tier1: {
+                ssl: unwrap(results[0]),
+                headers: unwrap(results[1]),
+                ports: unwrap(results[2]),
+                carbon: unwrap(results[3]),
+                dns: unwrap(results[4])
+            }
         });
 
     } catch (error) {
-        logger.error("Scan Error:", error.message);
+        logger.error("Tier 1 Error:", error.message);
         res.status(500).json({ error: 'Scan failed to initialize' });
+    }
+});
+
+// [ENDPOINT 2] Deep Scan - Limited Concurrency (Tier 2)
+app.post('/api/scan/deep', async (req, res) => {
+    let { domain } = req.body;
+
+    // Validation
+    if (!domain || typeof domain !== 'string') return res.status(400).json({ error: 'Domain required' });
+    domain = domain.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    if (!validator.isFQDN(domain)) return res.status(400).json({ error: 'Invalid domain format' });
+
+    try {
+        // [GATEKEEPER] Check Worker Capacity
+        const counts = await scanQueue.getJobCounts('active', 'waiting');
+
+        // Strict Limit: If worker is busy, reject immediately
+        if (counts.active > 0 || counts.waiting > 0) {
+            return res.status(503).json({
+                error: 'System Busy',
+                message: 'Community Server Limit: A deep scan is already in progress. Please wait 30s or try again later.'
+            });
+        }
+
+        // Add to Queue
+        const job = await scanQueue.add('deep-scan', { domain }, {
+            removeOnComplete: 100,
+            removeOnFail: 500,
+            attempts: 1
+        });
+
+        logger.info(`Deep scan queued for: ${domain} (ID: ${job.id})`);
+
+        res.json({ id: job.id, status: 'queued' });
+
+    } catch (error) {
+        logger.error("Deep Scan Error:", error.message);
+        res.status(500).json({ error: 'Failed to queue deep scan' });
     }
 });
 

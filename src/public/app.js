@@ -1,6 +1,7 @@
 document.getElementById("year").innerText = new Date().getFullYear();
 let pollInterval;
 let currentData = {};
+let currentDomain = '';
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -51,6 +52,9 @@ function disableScanButton(text = 'Scanning...') {
 // ============================================
 
 async function startScan() {
+    // 1. Clear any previous deep scan polling
+    if (pollInterval) clearInterval(pollInterval);
+
     let domain = document.getElementById('domainInput').value.trim();
 
     if (!domain) {
@@ -65,11 +69,21 @@ async function startScan() {
         return;
     }
 
+    currentDomain = domain;
+
     disableScanButton('loading');
 
+    // Reset UI
     document.getElementById('loadingSection').classList.remove('hidden');
     document.getElementById('resultsArea').classList.add('hidden');
-    document.getElementById('errorMsg').classList.add('hidden');
+
+    // Reset Deep Scan UI
+    document.getElementById('deepScanSection').classList.add('hidden');
+    document.getElementById('deepScanOption').classList.remove('hidden');
+    document.getElementById('tier2Loading').classList.add('hidden');
+    document.getElementById('tier2Results').classList.add('hidden');
+    document.getElementById('screenshotContainer').classList.add('hidden');
+    document.getElementById('deepError').classList.add('hidden');
 
     try {
         const controller = new AbortController();
@@ -91,7 +105,7 @@ async function startScan() {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        if (!data.tier1 || !data.id) {
+        if (!data.tier1) {
             throw new Error('Invalid response from server');
         }
 
@@ -101,10 +115,9 @@ async function startScan() {
         document.getElementById('loadingSection').classList.add('hidden');
         document.getElementById('resultsArea').classList.remove('hidden');
 
-        // Update button to show deep scan in progress
-        disableScanButton('Deep Scanning...');
+        document.getElementById('deepScanSection').classList.remove('hidden');
 
-        setupDeepScan(domain, data.id);
+        enableScanButton();
 
     } catch (err) {
         document.getElementById('loadingSection').classList.add('hidden');
@@ -121,9 +134,40 @@ async function startScan() {
     }
 }
 
+async function triggerDeepScan() {
+    const btn = document.getElementById('deepScanBtn');
+    const errEl = document.getElementById('deepError');
+
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Queuing...`;
+    errEl.classList.add('hidden');
+
+    try {
+        const res = await fetch('/api/scan/deep', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ domain: currentDomain })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || data.error || 'Server error');
+        }
+
+        document.getElementById('deepScanOption').classList.add('hidden');
+        setupDeepScan(currentDomain, data.id);
+
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Retry Deep Scan</span>`;
+        errEl.innerText = err.message;
+        errEl.classList.remove('hidden');
+    }
+}
+
 function setupDeepScan(domain, scanId) {
-    document.getElementById('deepScanStatus').innerText = 'Running...';
-    document.getElementById('deepScanStatus').className = "px-2 py-1 rounded text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/20 animate-pulse";
+
     document.getElementById('tier2Loading').classList.remove('hidden');
     document.getElementById('tier2Results').classList.add('hidden');
     document.getElementById('screenshotContainer').classList.add('hidden');
@@ -199,8 +243,6 @@ async function pollDeepScan(id) {
 
         if (ticks > maxTicks) {
             clearInterval(pollInterval);
-            document.getElementById('deepScanStatus').innerText = 'Timeout';
-            document.getElementById('deepScanStatus').className = "px-2 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/20";
             document.getElementById('tier2Loading').innerHTML = `<div class="text-red-400 p-4">Deep scan timed out. Tier 1 results are still valid.</div>`;
             enableScanButton();
             return;
@@ -224,8 +266,6 @@ async function pollDeepScan(id) {
                 }, 500);
             } else if (job.state === 'failed') {
                 clearInterval(pollInterval);
-                document.getElementById('deepScanStatus').innerText = 'Failed';
-                document.getElementById('deepScanStatus').className = "px-2 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/20";
                 const errorMsg = job.error ? escapeHtml(job.error) : 'Unknown error';
                 document.getElementById('tier2Loading').innerHTML = `<div class="text-red-400 p-4">Scan Failed: ${errorMsg}</div>`;
                 enableScanButton();
@@ -241,8 +281,6 @@ async function pollDeepScan(id) {
 // ============================================
 
 function renderTier2(data) {
-    document.getElementById('deepScanStatus').innerText = 'Complete';
-    document.getElementById('deepScanStatus').className = "px-2 py-1 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/20";
 
     document.getElementById('tier2Loading').classList.add('hidden');
     document.getElementById('tier2Results').classList.remove('hidden');
