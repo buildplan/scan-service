@@ -17,8 +17,22 @@ const app = express();
 
 app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
-// [SECURITY] Restrict CORS in production (Optional: replace '*' with your actual domain)
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'https://audit.wiredalter.com' }));
+// [SECURITY] Restrict CORS
+const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['https://audit.wiredalter.com'];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+}));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
