@@ -113,8 +113,8 @@ async function startScan() {
 
         document.getElementById('deepScanSection').classList.remove('hidden');
 
-        disableScanButton('Deep Scanning...'); 
-        
+        disableScanButton('Deep Scanning...');
+
         enableScanButton();
 
     } catch (err) {
