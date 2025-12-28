@@ -10,6 +10,7 @@ npm-debug.log
 Dockerfile
 docker-compose.yml
 docker-compose-build.yml
+docker-compose-prod.yml
 .dockerignore
 
 # Environment Secrets

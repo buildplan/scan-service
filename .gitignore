@@ -16,6 +16,9 @@ valkey_data/
 redis_data/
 dump.rdb
 
+# Production Docker-compose
+docker-compose-prod.yml
+
 # OS Files
 .DS_Store
 Thumbs.db
