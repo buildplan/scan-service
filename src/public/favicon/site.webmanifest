@@ -1,0 +1,22 @@
+{
+  "name": "WiredAlter Web Audit",
+  "short_name": "WiredAlter Audit",
+  "description": "Web auditing tool. Analyze site performance, SEO, security headers, and tech stacks.",
+  "icons": [
+    {
+      "src": "/favicon/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0b1120",
+  "background_color": "#0b1120",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait"
+}
