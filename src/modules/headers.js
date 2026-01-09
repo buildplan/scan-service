@@ -3,7 +3,7 @@ const axios = require('axios');
 async function checkHeaders(domain) {
     try {
         const res = await axios.head(`https://${domain}`, {
-            timeout: 5000,
+            timeout: 4000,
             validateStatus: () => true // Don't throw on 404/500
         });
 

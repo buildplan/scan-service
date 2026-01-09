@@ -162,3 +162,5 @@ app.get('/api/scan/:id', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => logger.info(`Scanner Server running on port ${PORT}`));
+process.on('uncaughtException', (err) => { logger.error(`[CRITICAL] Uncaught Exception: ${err.message}`); });
+process.on('unhandledRejection', (reason, promise) => { logger.error(`[CRITICAL] Unhandled Rejection: ${reason}`); });

@@ -5,7 +5,7 @@ async function estimateCarbon(domain) {
     try {
         // 1. Get raw bytes (approximate via HEAD request)
         // A real lighthouse scan gives exact bytes, but for Tier 1 we estimate
-        const res = await axios.get(`https://${domain}`, { timeout: 5000 });
+        const res = await axios.get(`https://${domain}`, { timeout: 4000 });
         const bytes = parseInt(res.headers['content-length'] || 0) + (res.data ? res.data.length : 0);
 
         if (bytes === 0) return { co2: 0, green: false };
