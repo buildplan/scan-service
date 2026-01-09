@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # ignore Wappalyzer
+    ignore:
+      - dependency-name: "wappalyzer-core"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "wappalyzer-core"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
