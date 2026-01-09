@@ -4,15 +4,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    # ignore Wappalyzer
     ignore:
+      # Keep the scanner engine stable by ignoring these major updates
       - dependency-name: "wappalyzer-core"
+      - dependency-name: "lighthouse"
     groups:
       dependencies:
         patterns:
           - "*"
         exclude-patterns:
           - "wappalyzer-core"
+          - "lighthouse"
 
   - package-ecosystem: "docker"
     directory: "/"
